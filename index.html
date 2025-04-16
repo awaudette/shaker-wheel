@@ -1,118 +1,111 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Roue de récompense</title>
+  <meta charset="UTF-8">
+  <title>Roue Shaker</title>
   <style>
     body {
+      background-color: #0D0D0D;
+      color: #FFD700;
+      font-family: 'Segoe UI', sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       height: 100vh;
-      font-family: Arial, sans-serif;
-      background: #f8f9fa;
+      margin: 0;
     }
-    .wheel-container {
-      position: relative;
-      width: 300px;
-      height: 300px;
+
+    canvas {
       border-radius: 50%;
-      border: 10px solid #333;
-      overflow: hidden;
-      margin-bottom: 20px;
+      border: 5px solid #FFD700;
+      box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
     }
-    .wheel {
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      transform: rotate(0deg);
-      transition: transform 5s cubic-bezier(0.33, 1, 0.68, 1);
-    }
-    .segment {
-      position: absolute;
-      width: 50%;
-      height: 50%;
-      background: gold;
-      transform-origin: 100% 100%;
-      text-align: right;
-      padding-right: 10px;
-      box-sizing: border-box;
-    }
-    .indicator {
-      width: 0;
-      height: 0;
-      border-left: 15px solid transparent;
-      border-right: 15px solid transparent;
-      border-bottom: 30px solid red;
-      position: absolute;
-      top: -30px;
-      left: calc(50% - 15px);
-    }
+
     button {
-      padding: 10px 20px;
-      font-size: 16px;
-      cursor: pointer;
-      background: #007bff;
-      color: white;
+      margin-top: 25px;
+      background-color: #FFD700;
+      color: #000;
       border: none;
-      border-radius: 5px;
-    }
-    #result {
-      margin-top: 20px;
+      padding: 12px 30px;
       font-size: 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+      transition: 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #e6c200;
+    }
+
+    .result {
+      margin-top: 20px;
+      font-size: 22px;
+      color: white;
       font-weight: bold;
     }
   </style>
 </head>
 <body>
-  <div class="indicator"></div>
-  <div class="wheel-container">
-    <div id="wheel" class="wheel">
-      <!-- 7 segments -->
-    </div>
-  </div>
-  <button onclick="spinWheel()">🎉 Lancer la roue</button>
-  <div id="result"></div>
+  <canvas id="wheel" width="350" height="350"></canvas>
+  <button onclick="spinWheel()">Lancer la roue</button>
+  <div class="result" id="result"></div>
 
   <script>
-    const rewards = ["15 pts", "25 pts", "50 pts", "100 pts", "250 pts", "500 pts", "1000 pts"];
-    const wheel = document.getElementById("wheel");
-    const resultDiv = document.getElementById("result");
+    const canvas = document.getElementById("wheel");
+    const ctx = canvas.getContext("2d");
+    const segments = [
+      { label: "15 pts", color: "#111", chance: 62 },
+      { label: "25 pts", color: "#FFD700", chance: 30 },
+      { label: "50 pts", color: "#333", chance: 5 },
+      { label: "100 pts", color: "#FFD700", chance: 2 },
+      { label: "250 pts", color: "#111", chance: 0.7 },
+      { label: "500 pts", color: "#FFD700", chance: 0.2 },
+      { label: "1000 pts", color: "#333", chance: 0.1 }
+    ];
 
-    function drawSegments() {
-      const colors = ["#ffc107", "#28a745", "#17a2b8", "#6f42c1", "#fd7e14", "#20c997", "#dc3545"];
-      for (let i = 0; i < rewards.length; i++) {
-        const seg = document.createElement("div");
-        seg.className = "segment";
-        seg.style.background = colors[i % colors.length];
-        seg.style.transform = `rotate(${i * (360 / rewards.length)}deg) skewY(-51.4deg)`;
-        seg.innerHTML = `<span style="transform: skewY(51.4deg); display: inline-block;">${rewards[i]}</span>`;
-        wheel.appendChild(seg);
+    const fullCircle = 2 * Math.PI;
+    const total = segments.reduce((acc, seg) => acc + seg.chance, 0);
+    const angles = segments.map(s => (s.chance / total) * fullCircle);
+
+    let startAngle = 0;
+    function drawWheel() {
+      let angle = 0;
+      for (let i = 0; i < segments.length; i++) {
+        ctx.beginPath();
+        ctx.moveTo(175, 175);
+        ctx.fillStyle = segments[i].color;
+        ctx.arc(175, 175, 175, angle, angle + angles[i]);
+        ctx.fill();
+        ctx.fillStyle = "white";
+        ctx.font = "bold 16px sans-serif";
+        ctx.save();
+        ctx.translate(175, 175);
+        ctx.rotate(angle + angles[i] / 2);
+        ctx.textAlign = "right";
+        ctx.fillText(segments[i].label, 160, 10);
+        ctx.restore();
+        angle += angles[i];
       }
     }
 
-    let isSpinning = false;
+    drawWheel();
 
     function spinWheel() {
-      if (isSpinning) return;
-      isSpinning = true;
-
-      const segmentAngle = 360 / rewards.length;
-      const randIndex = Math.floor(Math.random() * rewards.length);
-      const randRotation = 3600 + randIndex * segmentAngle + segmentAngle / 2;
-
-      wheel.style.transition = "transform 5s cubic-bezier(0.33, 1, 0.68, 1)";
-      wheel.style.transform = `rotate(${randRotation}deg)`;
-
-      setTimeout(() => {
-        resultDiv.textContent = `🎁 Vous avez gagné ${rewards[randIndex]} !`;
-        isSpinning = false;
-      }, 5200);
+      const resultEl = document.getElementById("result");
+      const rand = Math.random() * 100;
+      let acc = 0, selected;
+      for (let seg of segments) {
+        acc += seg.chance;
+        if (rand <= acc) {
+          selected = seg;
+          break;
+        }
+      }
+      resultEl.innerHTML = `🎁 Vous avez gagné ${selected.label} !`;
     }
-
-    drawSegments();
   </script>
 </body>
 </html>
